@@ -15,14 +15,13 @@ Create the environment with:
 make create_environment
 ```
 
-This will create a `virtualenv` or `conda` environment. Then, activate the environment. I use `virtualenvwrapper`, so for me, this step is:
+This will create a `virtualenv` or `conda` environment. Next, activate the environment. With `conda` (what I'm using) this is:
 
 ```
-workon un-general-debates
+conda activate un-general-debates
 ```
 
-Finally, install the requirements with:
-
+Finally, install the requirements with the following command. Note that this uses `pip` behind the scenes. You may want to install some of the requirements manually. For example, `tensorflow` or `tensorflow-gpu` if you have a GPU available.
 ```
 make requirements
 ```
