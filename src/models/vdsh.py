@@ -90,7 +90,7 @@ class VDSH:
 
 if __name__ == '__main__':
     from src.utils.corpus import load_corpus, generate_tfidf
-    corpus = load_corpus().head(1000)
+    corpus = load_corpus()
     X, dictionary = generate_tfidf(corpus)
     vdsh = VDSH()
     vdsh.build_model(X.shape[1])
