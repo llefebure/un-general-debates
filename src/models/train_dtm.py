@@ -24,11 +24,6 @@ def train(args, output_dir):
     dir."""
     debates = load_corpus()
 
-    # Generate BOW representation of the docs.
-    word_tokenizer = WordTokenizer()
-    debates['bag_of_words'] = (
-        debates.text.apply(lambda x: word_tokenizer.tokenize(x)))
-
     # Create the dictionary.
     dictionary = Dictionary(debates.bag_of_words)
     dictionary.filter_extremes(no_below=100)

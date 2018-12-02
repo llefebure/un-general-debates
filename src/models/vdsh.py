@@ -6,6 +6,7 @@
 """
 import tensorflow as tf
 import keras.layers as layers
+import logging
 import numpy as np
 import os
 from keras.models import Model
@@ -16,6 +17,8 @@ from gensim.corpora import Dictionary
 from src import HOME_DIR
 from src.utils.corpus import load_corpus
 from src.utils.tokenization import WordTokenizer
+
+logger = logging.getLogger(__name__)
 
 def _sampling(args, epsilon_std=1.):
     """VAE sampling"""
@@ -31,7 +34,7 @@ class VDSH:
     full = None # The end-to-end Keras model.
     encoder = None # The encoder portion of the model.
 
-    def build_model(self, input_dim, intermediate_dim=30, latent_dim=10):
+    def build_model(self, input_dim, intermediate_dim=500, latent_dim=32):
         inputs = layers.Input(
             shape=(input_dim,), dtype='float32', name='bow_input')
         t1 = layers.Dense(
@@ -93,6 +96,10 @@ class VDSH:
         if not self.full:
             self.build_model(input_dim=X.shape[1])
 
+        if os.path.exists(_join_model_path(model_file)):
+            logger.info('Loading existing weights from %s.' % model_file)
+            self.load_weights(model_file)
+
         def _X_generator():
             start = 0
             indices = np.arange(X.shape[0])
@@ -118,7 +125,10 @@ class VDSH:
 if __name__ == '__main__':
     from src.utils.corpus import load_corpus, generate_tfidf
     corpus = load_corpus()
-    X, dictionary = generate_tfidf(corpus)
+    dictionary = Dictionary(corpus.bag_of_words)
+    dictionary.filter_extremes(no_below=100)
+    dictionary.compactify()
+    X = generate_tfidf(corpus, dictionary)
     vdsh = VDSH()
     vdsh.build_model(X.shape[1])
     vdsh.train(X, epochs=5, model_file='vdsh.hdf5')

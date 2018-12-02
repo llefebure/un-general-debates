@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from src import HOME_DIR
-from src.utils.tokenization import ParagraphTokenizer
+from src.utils.tokenization import ParagraphTokenizer, WordTokenizer
 
 def preprocess_data():
     """Load and preprocess the raw data
@@ -51,6 +51,11 @@ def preprocess_data():
     # Must retain this new index to preserve ordering of paragraphs within
     # each speech.
     debates_paragraphs.index.name = 'paragraph_index'
+
+    # Add bag of words feature.
+    word_tokenizer = WordTokenizer()
+    debates_paragraphs['bag_of_words'] = (
+        debates_paragraphs.text.apply(lambda x: word_tokenizer.tokenize(x)))
 
     # Save data to interim directory.
     debates.to_csv(
