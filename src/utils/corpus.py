@@ -1,7 +1,7 @@
 """Utils for loading the data"""
 import os
 import pandas as pd
-from gensim.matutils import corpus2dense
+from gensim.matutils import corpus2csc
 from gensim.models import TfidfModel
 from gensim.corpora import Dictionary
 from src import HOME_DIR
@@ -31,7 +31,7 @@ def generate_tfidf(corpus):
         corpus.bag_of_words.apply(lambda x: dictionary.doc2bow(x)))
     model = tfidf_model[
         corpus.bag_of_words.apply(lambda x: dictionary.doc2bow(x))]
-    X = corpus2dense(model, len(dictionary)).T
+    X = corpus2csc(model, len(dictionary)).T
     return X, dictionary
 
 def load_corpus(paragraph_tokenize=True):

@@ -27,7 +27,7 @@ requirements: test_environment
 	ipython kernel install --user --name=$(PROJECT_NAME)
 
 ## Make Dataset
-data: requirements
+data:
 	bash src/data/download_dataset.sh
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py
 
