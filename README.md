@@ -15,13 +15,13 @@ Create the environment with:
 make create_environment
 ```
 
-This will create a `virtualenv` or `conda` environment. Next, activate the environment. With `conda` (what I'm using) this is:
+This will create a Python3 `virtualenv` or `conda` environment (if `conda` is available). Next, activate the environment. With `conda` (what I'm using) this is:
 
 ```
 conda activate un-general-debates
 ```
 
-Finally, install the requirements with the following command. Note that this uses `pip` behind the scenes. You may want to install some of the requirements manually. For example, `tensorflow` or `tensorflow-gpu` if you have a GPU available.
+Finally, install the requirements with the following command. Note that this uses `pip` behind the scenes. There are some packages that are not easily pip installable, so this command won't install everything. Look at the commented section in `requirements.txt` for packages that you should install manually.
 ```
 make requirements
 ```
@@ -55,3 +55,7 @@ A [Dynamic Topic Model](https://mimno.infosci.cornell.edu/info6150/readings/dyna
 This code uses `gensim`'s wrapper to the original C++ implementation to train DTMs. See the [docs](https://radimrehurek.com/gensim/models/wrappers/dtmmodel.html) for instructions on setup. You will need to either download a precompiled binary or build one manually.
 
 To train a DTM on this dataset, refer to `scripts/train_dtm.py`. Note that the inference takes quite a while: almost 8 hours for me on a n1-standard-2 (2 vCPUs, 7.5 GB memory) instance on Google Cloud Platform. The script will save the model and a copy of the processed data into `models/`, and you can use the notebook `notebooks/DTM.ipynb` to explore the learned topics.
+
+### Semantic Hashing
+
+The paper [Variational Deep Semantic Hashing for Text Documents](https://arxiv.org/pdf/1708.03436.pdf) presents an interesting method for hashing documents using a deep generative model. I implemented the unsupervised version of the model that uses a VAE to encode a TFIDF vector and decode a softmax distribution over the vocabulary.

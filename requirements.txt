@@ -1,3 +1,14 @@
+# The requirements in this file will be installed with `pip` when running
+# `make requirements`. Some additional packages that are required for certain
+# parts of this analysis are:
+#
+#   `tensorflow`: Installation is different depending on if you're training on
+#   a GPU or not. Additionally, performance is better when installing through
+#   `conda` instead of `pip`.
+#
+#   `faiss`: This is a similarity search module from FAIR. It's easily
+#   installable through `conda`, but not through `pip`.
+
 # local package
 -e .
 
@@ -19,5 +30,4 @@ numpy
 pandas
 pyLDAvis
 scipy
-tensorflow
 keras
