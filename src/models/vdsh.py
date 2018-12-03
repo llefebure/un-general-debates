@@ -100,22 +100,7 @@ class VDSH:
             logger.info('Loading existing weights from %s.' % model_file)
             self.load_weights(model_file)
 
-        def _X_generator():
-            start = 0
-            indices = np.arange(X.shape[0])
-            while True:
-                batch = X[indices[start:start+batch_size]]
-                if batch.shape[0] != batch_size:
-                    np.random.shuffle(indices)
-                    start = 0
-                    continue
-                else:
-                    start = start + batch_size
-                yield (batch.todense(), batch.todense())
-
-        self.full.fit_generator(
-            _X_generator(), epochs=epochs,
-            steps_per_epoch=int(X.shape[0] / batch_size))
+        self.full.fit(X, X, batch_size=batch_size, epochs=epochs)
         if model_file:
             self.full.save_weights(_join_model_path(model_file))
 
