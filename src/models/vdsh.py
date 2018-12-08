@@ -123,10 +123,10 @@ class VDSH:
 
 if __name__ == '__main__':
     from src.utils.corpus import load_corpus, generate_tfidf
-    corpus = load_corpus().head(20000)
+    corpus = load_corpus()
     dictionary = Dictionary(corpus.bag_of_words)
     dictionary.filter_extremes(no_below=100)
     X = generate_tfidf(corpus, dictionary)
     vdsh = VDSH()
     vdsh.build_model(X.shape[1])
-    vdsh.train(X, epochs=1, model_file='vdsh.hdf5', history_file='vdsh.history')
+    vdsh.train(X, epochs=20, model_file='vdsh.hdf5', history_file='vdsh.history')
