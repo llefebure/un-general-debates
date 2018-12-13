@@ -63,8 +63,7 @@ class VDSH:
         sigma = layers.Dense(
             latent_dim, activation='exponential', name='sigma')(t2)
         s = layers.Lambda(_sampling, name='s')([mu, sigma])
-        c = layers.Dense(input_dim, activation='exponential', name='c')(s)
-        P = layers.Activation('softmax', name='P')(c)
+        P = layers.Dense(input_dim, activation='softmax', name='P')(s)
         encoder_decoder = Model(inputs, P, name='vdsh_encoder_decoder')
         encoder = Model(inputs, mu, name='vdsh_encoder')
 

@@ -54,7 +54,7 @@ To counter this problem, I tokenize each speech into paragraphs and treat each p
 
 ### Topic Modelling
 
-### LDA and Dynamic Topic Modelling
+#### LDA and Dynamic Topic Modelling
 
 I begin by applying LDA and visualizing resulting topics with `pyLDAvis`. See [notebooks/LDA.ipynb](notebooks/LDA.ipynb). I see some separation of easily interpretable topics such as nuclear weapons, Africa, and Israel/Palestine.
 
@@ -66,6 +66,6 @@ This code uses `gensim`'s wrapper to the original C++ implementation to train DT
 
 To train a DTM on this dataset, refer to [scripts/train_dtm.py](scripts/train_dtm.py). Note that the inference takes quite a while: almost 8 hours for me on a n1-standard-2 (2 vCPUs, 7.5 GB memory) instance on Google Cloud Platform. The script will save the model and a copy of the processed data into `models/`, and you can use the notebook [notebooks/DTM.ipynb](notebooks/DTM.ipynb) to explore the learned topics.
 
-### Semantic Hashing
+#### Semantic Hashing
 
 The paper [Variational Deep Semantic Hashing for Text Documents](https://arxiv.org/pdf/1708.03436.pdf) presents an interesting method for hashing documents using a deep generative model. I implemented the unsupervised version of the model that uses a VAE to encode a TFIDF vector and decode into a softmax distribution over the vocabulary. This could be used as a preprocessing step to bucket documents before applying more expensive pairwise comparison methods on documents within buckets.
