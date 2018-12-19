@@ -5,17 +5,12 @@ from tqdm import tqdm
 from src import HOME_DIR
 from src.utils.spacy import nlp
 
-def preprocess_data(n_threads=8):
+def preprocess_data():
     """Preprocess the raw data
 
     This helper function preprocesses the data by merging together country codes
     with their full names, serializing Spacy markup of every speech, and saving
     a CSV output. See `src/utils/corpus.py` for utils for loading.
-
-    Parameters
-    ----------
-    n_threads : int
-        Number of threads to pass to `nlp.pipe`.
     """
     debates = pd.read_csv(
         os.path.join(HOME_DIR, 'data/external/un-general-debates.csv'))
@@ -42,7 +37,7 @@ def preprocess_data(n_threads=8):
     # Compute and serialize Spacy
     output = {'vocab': nlp.vocab.to_bytes(), 'docs': {}}
     for i, doc in tqdm(
-            enumerate(nlp.pipe(debates.text, n_threads=n_threads)),
+            enumerate(nlp.pipe(debates.text, batch_size=20)),
             total=debates.shape[0]):
         doc.tensor = None # Reduce size of object
         output['docs'][i] = doc.to_bytes()
