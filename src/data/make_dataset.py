@@ -1,18 +1,21 @@
 import os
 import pandas as pd
+import msgpack
+from tqdm import tqdm
 from src import HOME_DIR
-from src.utils.tokenization import ParagraphTokenizer, WordTokenizer
+from src.utils.spacy import nlp
 
-def preprocess_data():
-    """Load and preprocess the raw data
+def preprocess_data(n_threads=8):
+    """Preprocess the raw data
 
-    This helper function loads and preprocesses the data to abstract away some
-    of the menial work.
+    This helper function preprocesses the data by merging together country codes
+    with their full names, serializing Spacy markup of every speech, and saving
+    a CSV output. See `src/utils/corpus.py` for utils for loading.
 
     Parameters
     ----------
-    paragraph_tokenize : bool
-        Indicate whether to paragraph tokenize the speeches.
+    n_threads : int
+        Number of threads to pass to `nlp.pipe`.
     """
     debates = pd.read_csv(
         os.path.join(HOME_DIR, 'data/external/un-general-debates.csv'))
@@ -36,34 +39,20 @@ def preprocess_data():
     debates = pd.merge(debates, iso_codes, how='left', on='country')
     debates = debates.sort_values(['year', 'country']).reset_index(drop=True)
 
-    paragraph_tokenizer = ParagraphTokenizer()
-    paragraphs = pd.Series(
-        debates.text
-        .apply(lambda x: [x[start:end] for start, end
-                          in paragraph_tokenizer.span_tokenize(x)])
-        .apply(lambda x: pd.Series(x))
-        .stack()
-        .reset_index(level=1, drop=True), name='text')
-    debates_paragraphs = (debates
-                          .drop('text', axis=1)
-                          .join(paragraphs)
-                          .reset_index())
-    # Must retain this new index to preserve ordering of paragraphs within
-    # each speech.
-    debates_paragraphs.index.name = 'paragraph_index'
+    # Compute and serialize Spacy
+    output = {'vocab': nlp.vocab.to_bytes(), 'docs': {}}
+    for i, doc in tqdm(
+            enumerate(nlp.pipe(debates.text, n_threads=n_threads)),
+            total=debates.shape[0]):
+        doc.tensor = None # Reduce size of object
+        output['docs'][i] = doc.to_bytes()
+    filename = os.path.join(HOME_DIR, 'data/processed/spacy')
+    with open(filename, 'wb') as f:
+        f.write(msgpack.dumps(output))
 
-    # Add bag of words feature.
-    word_tokenizer = WordTokenizer()
-    debates_paragraphs['bag_of_words'] = (
-        debates_paragraphs.text.apply(lambda x: word_tokenizer.tokenize(x)))
-
-    # Save data to interim directory.
     debates.to_csv(
         os.path.join(HOME_DIR, 'data/processed/debates.csv'),
         index=False)
-    debates_paragraphs.to_csv(
-        os.path.join(HOME_DIR, 'data/processed/debates_paragraphs.csv'),
-        index=True)
 
 if __name__ == '__main__':
     preprocess_data()
