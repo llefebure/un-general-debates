@@ -39,13 +39,14 @@ def preprocess_data():
 
     # Compute and serialize Spacy
     if input('Compute Spacy [yn]:') == 'y':
-        output = {'vocab': nlp.vocab.to_bytes(), 'docs': []}
+        output = {'docs': []}
         docs = []
         for doc in tqdm(
                 nlp.pipe((t.strip() for t in debates.text), batch_size=20),
                 total=debates.shape[0]):
             docs.append(doc)
             output['docs'].append(doc.to_bytes(tensor=False))
+        output['vocab'] = nlp.vocab.to_bytes()
         filename = os.path.join(HOME_DIR, 'data/processed/spacy')
         with open(filename, 'wb') as f:
             f.write(msgpack.dumps(output))

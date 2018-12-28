@@ -2,6 +2,8 @@
 import spacy
 from spacy.tokens import Doc, Span
 
+spacy.prefer_gpu()
+
 class ParagraphTokenizer:
     """Spacy extension for paragraph tokenization"""
     def __init__(self):
