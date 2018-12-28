@@ -14,8 +14,6 @@ from keras.models import Model
 from keras import backend as K
 from gensim.corpora import Dictionary
 from src import HOME_DIR
-from src.utils.corpus import load_corpus
-from src.utils.tokenization import WordTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -121,11 +119,13 @@ class VDSH:
         return self.encoder.predict(X)
 
 if __name__ == '__main__':
-    from src.utils.corpus import load_corpus, generate_tfidf
-    corpus = load_corpus()
-    dictionary = Dictionary(corpus.bag_of_words)
+    from src.utils.corpus import Corpus
+    from src.utils.tfidf import generate_tfidf
+    corpus = Corpus()
+    dictionary = Dictionary(corpus.debates.bag_of_words)
     dictionary.filter_extremes(no_below=100)
-    X = generate_tfidf(corpus, dictionary)
+    X = generate_tfidf(corpus.debates, dictionary)
     vdsh = VDSH()
     vdsh.build_model(X.shape[1])
-    vdsh.train(X, epochs=20, model_file='vdsh.hdf5', history_file='vdsh.history')
+    vdsh.train(
+        X, epochs=20, model_file='vdsh.hdf5', history_file='vdsh.history')

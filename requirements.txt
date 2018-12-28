@@ -25,7 +25,6 @@ gensim
 ipykernel
 kaggle
 matplotlib
-nltk
 numpy
 pandas
 pyLDAvis

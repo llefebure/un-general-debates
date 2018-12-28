@@ -1,7 +1,6 @@
-"""This script trains the DTM and saves the resulting model.
+"""DTM Training
 
-To see the command line options, run:
-    $ python src/models/train_dtm.py --help
+This script trains a DTM and saves the resulting model.
 """
 import argparse
 import datetime
@@ -15,25 +14,23 @@ from gensim.models import LdaModel
 from gensim.models.wrappers import DtmModel
 
 from src import HOME_DIR
-from src.utils.tokenization import (ParagraphTokenizer, WordTokenizer,
-    SentenceTokenizer)
-from src.utils.corpus import load_corpus
+from src.utils.corpus import Corpus
 
 def train(args, output_dir):
     """Build the corpus, trains the DTM, and saves the model to the output
     dir."""
-    debates = load_corpus()
+    corpus = Corpus()
 
     # Create the dictionary.
-    dictionary = Dictionary(debates.bag_of_words)
+    dictionary = Dictionary(corpus.debates.bag_of_words)
     dictionary.filter_extremes(no_below=100)
 
     # Train and save dtm.
-    corpus = debates.bag_of_words.apply(lambda x: dictionary.doc2bow(x))
+    dtm_corpus = corpus.debates.bag_of_words.apply(dictionary.doc2bow)
     model = DtmModel(
-        args.executable, corpus=corpus, id2word=dictionary,
+        args.executable, corpus=dtm_corpus, id2word=dictionary,
         num_topics=args.num_topics,
-        time_slices=debates.groupby('year').size().values, rng_seed=5278
+        time_slices=corpus.debates.groupby('year').size().values, rng_seed=5278
     )
     model.save(os.path.join(output_dir, 'dtm.gensim'))
 

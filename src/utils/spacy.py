@@ -1,7 +1,9 @@
+"""Utils for using Spacy"""
 import spacy
 from spacy.tokens import Doc, Span
 
 class ParagraphTokenizer:
+    """Spacy extension for paragraph tokenization"""
     def __init__(self):
         Doc.set_extension('paragraphs', default=[])
     
@@ -18,6 +20,7 @@ class ParagraphTokenizer:
         return doc
 
 class BagOfWords:
+    """Spacy extension for appending bag of words feature"""
     def __init__(self):
         Doc.set_extension('bow', default=[])
         Span.set_extension('bow', default=[])
