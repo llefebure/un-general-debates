@@ -11,7 +11,9 @@ from src import HOME_DIR
 def load_dtm(name):
     """Helper function to load in the model."""
     model_path = os.path.join(HOME_DIR, 'models', name, 'dtm.gensim')
-    return DtmModel.load(model_path)
+    time_slices = pd.read_pickle(
+        os.path.join(HOME_DIR, 'models', name, 'time_slices.p'))
+    return DtmModel.load(model_path), time_slices
 
 def term_distribution(model, term, topic):
     """Extracts the probability over each time slice of a term/topic pair."""

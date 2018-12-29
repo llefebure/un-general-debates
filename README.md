@@ -36,7 +36,9 @@ There are two raw data files that are used in this project. They are:
 * [General Debates](https://www.kaggle.com/unitednations/un-general-debates): This has all of the raw text and metadata from the speeches.
 * [Country Code Mapping](https://www.kaggle.com/juanumusic/countries-iso-codes): This has a mapping from ISO Alpha-3 country codes to country names.
 
-The following will download and preprocess them for you. If you haven't used the Kaggle API before, some additional setup will be required for this to work.
+This project also uses pretrained Wikipedia2vec vectors for word and entity (Wikipedia page) embeddings. See [here](https://wikipedia2vec.github.io/wikipedia2vec/) for more details.
+
+The following will download all of the raw data and preprocess the appropriate files for you. If you haven't used the Kaggle API before, some additional setup will be required for this to work.
 
 ```
 make data

@@ -1,6 +1,7 @@
 """Utils for using Spacy"""
 import spacy
 from spacy.tokens import Doc, Span
+from src.utils.wiki2vec import lookup_entity
 
 spacy.prefer_gpu()
 
@@ -40,6 +41,18 @@ class BagOfWords:
         doc._.set('bow', doc_bow)
         return doc
 
+class Entity:
+    """Spacy extension for appending wiki entities"""
+    def __init__(self):
+        Span.set_extension('entity', default=None)
+    
+    def __call__(self, doc):
+        for nc in doc.noun_chunks:
+            nc._.set('entity', lookup_entity(nc))
+        return doc
+
 nlp = spacy.load('en')
 paragraph_tokenizer = ParagraphTokenizer()
 bow = BagOfWords()
+entity = Entity()
+all_pipes = [paragraph_tokenizer, bow, entity]

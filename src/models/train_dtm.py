@@ -26,12 +26,14 @@ def train(args, output_dir):
     dictionary.filter_extremes(no_below=100)
 
     # Train and save dtm.
+    time_slices = corpus.debates.groupby('year').size()
     dtm_corpus = corpus.debates.bag_of_words.apply(dictionary.doc2bow)
     model = DtmModel(
         args.executable, corpus=dtm_corpus, id2word=dictionary,
         num_topics=args.num_topics,
-        time_slices=corpus.debates.groupby('year').size().values, rng_seed=5278
+        time_slices=time_slices.values, rng_seed=5278
     )
+    time_slices.to_pickle(os.path.join(output_dir, 'time_slices.p'))
     model.save(os.path.join(output_dir, 'dtm.gensim'))
 
 def parse_args():

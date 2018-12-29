@@ -11,3 +11,12 @@ if [ -f $FILE2 ]; then
 else
    kaggle datasets download -d juanumusic/countries-iso-codes -p data/external/ --unzip
 fi
+
+FILE3="data/external/enwiki_20180420_100d.pkl"
+if [ -f $FILE3 ]; then
+   echo "$FILE3 exists already."
+else
+   curl -o data/external/enwiki_20180420_100d.pkl.bz2 http://wikipedia2vec.s3.amazonaws.com/models/en/2018-04-20/enwiki_20180420_100d.pkl.bz2
+   bunzip2 data/external/enwiki_20180420_100d.pkl.bz2
+fi
+

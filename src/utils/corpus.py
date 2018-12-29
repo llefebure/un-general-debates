@@ -7,7 +7,7 @@ import pandas as pd
 from functools import lru_cache
 from spacy.tokens import Doc
 from src import HOME_DIR
-from src.utils.spacy import nlp, paragraph_tokenizer, bow
+from src.utils.spacy import nlp, all_pipes
 
 logger = logging.getLogger(__name__)
 cache = lru_cache(maxsize=None)
@@ -96,8 +96,9 @@ class Speech:
     @cache
     def spacy_doc(self):
         if self._spacy_bytes is not None:
-            doc = bow(paragraph_tokenizer(
-                Doc(nlp.vocab).from_bytes(self._spacy_bytes)))
+            doc = Doc(nlp.vocab).from_bytes(self._spacy_bytes)
+            for f in all_pipes:
+                doc = f(doc)
             return doc
         else:
             raise FileNotFoundError('No serialized Spacy found')
@@ -133,14 +134,12 @@ class Corpus:
             for i, group in debates.groupby('index')
         ]
 
-    def dataframe(self):
-        return self.debates
-
     def add_dataframe_column(self, column):
         """Add column to the dataframe
 
         Add a column to the corpus dataframe and save it so that it loads next
-        time.
+        time. Useful for adding paragraph level annotations that don't
+        necessarily make sense as a Spacy extension.
 
         Parameters
         ----------
@@ -148,4 +147,4 @@ class Corpus:
             New column to append to the corpus dataframe. Should be named.
         """
         self.debates = pd.concat([self.debates, column], axis=1)
-        self.debates.to_csv(self.filename)
+        self.debates.to_csv(self.filename, index=False)
