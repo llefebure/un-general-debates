@@ -120,7 +120,8 @@ class Speech:
 
 class Corpus:
     """UN General Debate Corpus"""
-    def __init__(self, filename='data/processed/debates_paragraphs.csv'):
+    def __init__(self, filename='data/processed/debates_paragraphs.csv',
+                 from_year=None):
         self.filename = filename
         self._load(filename)
 
@@ -133,6 +134,7 @@ class Corpus:
             Speech(i, group, spacy.pop(i) if spacy else None)
             for i, group in debates.groupby('index')
         ]
+        self.paragraphs = [par for sp in self.speeches for par in sp.paragraphs]
 
     def add_dataframe_column(self, column):
         """Add column to the dataframe

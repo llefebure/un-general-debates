@@ -7,9 +7,11 @@ Wikipedia entities in the speeches and similarity between discovered entities.
 .. [1] https://wikipedia2vec.github.io/wikipedia2vec/
 """
 import logging
+import numpy as np
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 from wikipedia2vec import Wikipedia2Vec
+from scipy.spatial.distance import cosine
 from src import HOME_DIR
 
 logger = logging.getLogger(__name__)
@@ -107,3 +109,38 @@ def lookup_entity(noun_chunk):
         if entity is not None:
             return entity
     return None
+
+def label_topic(spacy_docs, top_terms, n=10):
+    """Assign entity labels to a topic
+
+    Parameters
+    ----------
+    spacy_docs : list of spacy.tokens.Doc
+        Representative docs from a topic learned by a topic model.
+    top_terms : list of str
+        List of representative terms from a topic.
+    n : int
+        Number of entity labels to return.
+
+    Returns
+    -------
+    list of tuples
+        List of entity labels along with a count of the entity in the provided
+        list of documents and a score measuring relevance of the entity to the
+        provided term list.
+    """
+    entities = Counter()
+    for doc in spacy_docs:
+        for nc in doc.noun_chunks:
+            if nc._.entity:
+                entities[nc._.entity.title] += 1
+    final_candidates = list()
+    for candidate, count in entities.most_common(n):
+        scores = np.array([
+            1 - cosine(
+                wiki2vec.get_entity_vector(candidate),
+                wiki2vec.get_word_vector(term))
+            for term in top_terms if wiki2vec.get_word(term)
+        ])
+        final_candidates.append((candidate, count, scores.mean()))
+    return sorted(final_candidates, key=lambda x: -x[2])

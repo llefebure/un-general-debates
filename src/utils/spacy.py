@@ -32,7 +32,7 @@ class BagOfWords:
         doc_bow = []
         for par in doc._.paragraphs:
             par_bow = [
-                tok.lemma_ for tok in par
+                tok.lemma_.lower() for tok in par
                 if not (tok.is_space or tok.is_punct or tok.is_stop or
                        (tok.is_sent_start and tok.is_digit))
             ]
