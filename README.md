@@ -68,7 +68,7 @@ A Dynamic Topic Model [1] is basically an extension of LDA to allow topic repres
 
 This code uses `gensim`'s wrapper to the original C++ implementation to train DTMs. See the [docs](https://radimrehurek.com/gensim/models/wrappers/dtmmodel.html) for instructions on setup. You will need to either download a precompiled binary or build one manually.
 
-To train a DTM on this dataset, refer to [scripts/train_dtm.py](scripts/train_dtm.py). Note that the inference takes quite a while: almost 8 hours for me on a n1-standard-2 (2 vCPUs, 7.5 GB memory) instance on Google Cloud Platform. The script will save the model and a copy of the processed data into `models/`, and you can use the notebook [notebooks/DTM.ipynb](notebooks/DTM.ipynb) to explore the learned topics.
+To train a DTM on this dataset, refer to [src/models/dtm.py](src/models/dtm.py). Note that the inference takes quite a while: almost 8 hours for me on a n1-standard-2 (2 vCPUs, 7.5 GB memory) instance on Google Cloud Platform. The script will save the model and a copy of the processed data into `models/`, and you can use the notebook [notebooks/DTM.ipynb](notebooks/DTM.ipynb) to explore the learned topics.
 
 #### Topic Labelling
 

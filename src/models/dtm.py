@@ -10,11 +10,11 @@ import os
 import pandas as pd
 from collections import defaultdict
 from gensim.corpora.dictionary import Dictionary
-from gensim.models import LdaModel
 from gensim.models.wrappers import DtmModel
 
 from src import HOME_DIR
 from src.utils.corpus import Corpus
+
 
 def train(args, output_dir):
     """Build the corpus, trains the DTM, and saves the model to the output
@@ -31,7 +31,7 @@ def train(args, output_dir):
     model = DtmModel(
         args.executable, corpus=dtm_corpus, id2word=dictionary,
         num_topics=args.num_topics,
-        time_slices=time_slices.values, rng_seed=5278
+        time_slices=time_slices.values, rng_seed=args.random_seed
     )
     time_slices.to_pickle(os.path.join(output_dir, 'time_slices.p'))
     model.save(os.path.join(output_dir, 'dtm.gensim'))
@@ -55,6 +55,11 @@ def parse_args():
         help='The path to the DTM executable.',
         type=str,
         default='/home/lukelefebure/dtm/dtm/dtm')
+    parser.add_argument(
+        '-r', '--random-seed',
+        help='Random seed.',
+        type=int,
+        default=5278)
     return parser.parse_args()
 
 if __name__ == '__main__':
