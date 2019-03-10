@@ -80,11 +80,13 @@ Taking inspiration from [2] especially, I develop a method for labelling topics 
 
 2) For each label candidate from 1), compute the mean similarity between its embedding and that of each word in the term list that represents the topic (top M terms by marginal probability). Rank the label candidates by this score.
 
-3) Represent the topic with the top 3 label candidates as ranked in 2).
+3) Represent the topic with the top M label candidates as ranked in 2).
 
-An example of output from this method:
-* **Top Terms:** nuclear, weapon, non, treaty, arm, ban, proliferation, moon, use, mass
-* **Entity Labels:** Nuclear proliferation, Nuclear weapon, Disarmament
+Examples of some outputs from this method. We see the top terms from time slices of the Dynamic Topic Model, the top labels ranked according to the method above, and a label for the topic across all time slices obtained by using the method above on each time slice and aggregating the result.
+
+![Nuclear Weapons Topic Labels](reports/figures/NuclearWeapons.png)
+
+![Israel Palestine Topic Labels](reports/figures/IsraelPalestine.png)
 
 ### Semantic Hashing
 

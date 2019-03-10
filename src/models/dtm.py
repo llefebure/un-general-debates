@@ -105,6 +105,17 @@ class Dtm(DtmModel):
             ]
         return pd.DataFrame(data)
     
+    def top_lable_table(self, topic, slices, topn=10):
+        """Returns a dataframe with the top n labels in the topic for each of
+        the given time slices."""
+        data = {}
+        for time_slice in slices:
+            data[time_slice] = [
+                x[0] for x
+                in self.label_topic(topic, time_slice, topn)
+            ]
+        return pd.DataFrame(data)
+
     def summary(self, slices, topn=10):
         """Prints a summary of all the topics"""
         for topic in range(self.num_topics):
@@ -126,13 +137,30 @@ class Dtm(DtmModel):
         for row in slopes[:n]:
             print(row)
 
-    def label_topic(self, i, time_slice, n=10):
-        """Assign label to a given topic for a given time slice"""
+    def _label_topic(self, i, time_slice, n):
         time = np.where(self.time_slice_labels == time_slice)[0][0]
         top_terms = [term for _, term in self.show_topic(i, time, n)]
         spacy_docs = self.get_spacy_docs_for_topic(i, time)
         return label_topic(spacy_docs, top_terms)
-    
+
+    def label_topic(self, i, time_slice=None, n=10, condense=None):
+        """Assign label to a given topic for a given time slice. If no time
+        slice specified, give a time agnostic label."""
+        if time_slice is not None:
+            result = self._label_topic(i, time_slice, n)
+        else:
+            label_to_detail = defaultdict(list)
+            for ts in self.time_slice_labels:
+                labels_for_ts = self._label_topic(i, ts, n)
+                for label in labels_for_ts:
+                    label_to_detail[label[0]].append(label)
+            for k in label_to_detail:
+                label_to_detail[k] = (k, len(label_to_detail[k]))
+            result = sorted(label_to_detail.values(), key=lambda x: -x[1])[:n]
+        if condense is not None:
+            return '; '.join(x[0] for x in result[:condense])
+        return result
+
     def get_topics_for_documents(self):
         """Assign each document to its most probable topic"""
         p = np.exp(self.gamma_) /\
@@ -146,7 +174,8 @@ class Dtm(DtmModel):
             ((self.original_corpus.debates.year -
               self.original_corpus.debates.year.min()) == time_slice) &
             (self.topic_assignments == i)].index
-        return [self.original_corpus.paragraphs[j].spacy_doc() for j in indices]
+        return [self.original_corpus.paragraphs[j].spacy_doc() \
+                for j in indices]
 
 def train(args, output_dir):
     """Build the corpus, trains the DTM, and saves the model to the output

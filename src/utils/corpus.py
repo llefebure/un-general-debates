@@ -6,6 +6,8 @@ import os
 import pandas as pd
 from functools import lru_cache
 from spacy.tokens import Doc
+from tqdm import tqdm
+
 from src import HOME_DIR
 from src.utils.spacy import nlp, all_pipes
 
@@ -150,3 +152,7 @@ class Corpus:
         """
         self.debates = pd.concat([self.debates, column], axis=1)
         self.debates.to_csv(self.filename, index=False)
+
+    def load_spacy_cache(self):
+        for sp in tqdm(self.speeches):
+            sp.spacy_doc()

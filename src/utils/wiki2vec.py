@@ -106,7 +106,7 @@ def lookup_entity(noun_chunk):
         return None
     for text in _permutations(noun_chunk):
         entity = wiki2vec.get_entity(text)
-        if entity is not None:
+        if entity is not None and not entity.title.startswith('List of'):
             return entity
     return None
 
@@ -129,18 +129,22 @@ def label_topic(spacy_docs, top_terms, n=10):
         list of documents and a score measuring relevance of the entity to the
         provided term list.
     """
-    entities = Counter()
-    for doc in spacy_docs:
+    entity_counts = Counter()
+    entity_doc_counts = defaultdict(set)
+    for i, doc in enumerate(spacy_docs):
         for nc in doc.noun_chunks:
             if nc._.entity:
-                entities[nc._.entity.title] += 1
+                entity_counts[nc._.entity.title] += 1
+                entity_doc_counts[nc._.entity.title].add(i)
     final_candidates = list()
-    for candidate, count in entities.most_common(n):
+    for candidate, count in entity_counts.most_common(n):
         scores = np.array([
             1 - cosine(
                 wiki2vec.get_entity_vector(candidate),
                 wiki2vec.get_word_vector(term))
             for term in top_terms if wiki2vec.get_word(term)
         ])
-        final_candidates.append((candidate, count, scores.mean()))
-    return sorted(final_candidates, key=lambda x: -x[2])
+        doc_proportion = len(entity_doc_counts[candidate]) / len(spacy_docs)
+        final_candidates.append(
+            (candidate, count, doc_proportion, scores.mean()))
+    return sorted(final_candidates, key=lambda x: -x[3])
