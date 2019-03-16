@@ -1,9 +1,9 @@
 """Utils for using Spacy"""
 import spacy
 from spacy.tokens import Doc, Span
+from src.utils.id_generation import generate_document_id
 from src.utils.wiki2vec import lookup_entity
 
-spacy.prefer_gpu()
 
 class ParagraphTokenizer:
     """Spacy extension for paragraph tokenization"""
@@ -45,14 +45,38 @@ class Entity:
     """Spacy extension for appending wiki entities"""
     def __init__(self):
         Span.set_extension('entity', default=None)
-    
+
     def __call__(self, doc):
         for nc in doc.noun_chunks:
             nc._.set('entity', lookup_entity(nc))
         return doc
 
+class Id:
+    """Spacy extension for calculating an ID"""
+    def __init__(self):
+        Doc.set_extension('id', default=None)
+        Span.set_extension('id', default=None)
+
+    def __call__(self, doc):
+        doc._.set('id', generate_document_id(doc.text))
+        for par in doc._.paragraphs:
+            par._.set('id', generate_document_id(par.text))
+        return doc
+
+# This is pretty ugly and confusing. `Doc.to_bytes` fails when these extensions
+# are registered because it doesn't know how to serialize the types. Therefore,
+# I just apply the extensions after when I need them with `apply_extensions`.
+# In an ideal world, we'd be using `nlp.add_pipe`.
 nlp = spacy.load('en')
-paragraph_tokenizer = ParagraphTokenizer()
-bow = BagOfWords()
-entity = Entity()
-all_pipes = [paragraph_tokenizer, bow, entity]
+
+extensions = [
+    ParagraphTokenizer(),
+    BagOfWords(),
+    Entity(),
+    Id()
+]
+
+def apply_extensions(x):
+    for ext in extensions:
+        x = ext(x)
+    return x
