@@ -114,19 +114,35 @@ class Corpus:
         self._load(filename)
 
     def _load(self, filename):
-        debates = pd.read_csv(
-            os.path.join(HOME_DIR, filename), dtype={'paragraph_id': str})
+        debates = pd.read_csv(os.path.join(HOME_DIR, filename))
         debates.bag_of_words = debates.bag_of_words.apply(ast.literal_eval)
-        spacy = _load_spacy()
         self.debates = debates
+        spacy = _load_spacy()
+
+        # Ensure the following two lists are sorted in the same order as the
+        # debates df.
         self.speeches = [
             Speech(
                 group,
                 spacy.pop(id_) if spacy else None)
             for id_, group in debates.groupby('document_id')
         ]
-        # This list should be ordered exactly the same as the csv.
         self.paragraphs = [par for sp in self.speeches for par in sp.paragraphs]
+        for par_id_from_df, par in zip(debates.paragraph_id, self.paragraphs):
+            assert par_id_from_df == par.id_
+
+        self.speech_id_to_speech = {
+            sp.id_: sp for sp in self.speeches}
+        self.paragraph_id_to_paragraph = {
+            par.id_: par for par in self.paragraphs}
+
+    def paragraph(self, id_):
+        """Get a paragraph by id"""
+        return self.paragraph_id_to_paragraph[id_]
+
+    def speech(self, id_):
+        """Get a speech by id"""
+        return self.speech_id_to_speech[id_]
 
     def add_dataframe_column(self, column):
         """Add column to the dataframe
