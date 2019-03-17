@@ -51,7 +51,7 @@ class Paragraph:
         self.speech = parent
 
     def spacy_doc(self):
-        return self.speech.spacy_paragraphs()[self.id_]
+        return self.speech.spacy_doc()._.paragraphs[self.index]
 
     def session(self):
         return self.row.session
@@ -90,12 +90,10 @@ class Speech:
     def spacy_doc(self):
         if self._spacy_bytes is not None:
             doc = apply_extensions(Doc(nlp.vocab).from_bytes(self._spacy_bytes))
+            assert len(doc._.paragraphs) == len(self.paragraphs)
             return doc
         else:
             raise FileNotFoundError('No serialized Spacy found')
-
-    def spacy_paragraphs(self):
-        return {par._.id: par for par in self.spacy_doc()._.paragraphs}
 
     def session(self):
         return self.group.session.iloc[0]
@@ -124,7 +122,7 @@ class Corpus:
         self.speeches = [
             Speech(
                 group,
-                spacy.pop(bytes(str(id_), encoding='utf8')) if spacy else None)
+                spacy.pop(id_) if spacy else None)
             for id_, group in debates.groupby('document_id')
         ]
         # This list should be ordered exactly the same as the csv.
