@@ -18,8 +18,6 @@ def preprocess_data():
     debates = pd.read_csv(
         os.path.join(HOME_DIR, 'data/external/un-general-debates.csv'))
 
-    debates = debates.head(20)
-
     iso_codes = pd.read_csv(
         os.path.join(HOME_DIR,
                      'data/external/wikipedia-iso-country-codes.csv'),
@@ -41,9 +39,9 @@ def preprocess_data():
     debates.sort_values(['year', 'country'], inplace=True)
     debates.reset_index(drop=True, inplace=True)
     debates.index.name = 'document_id'
-    # debates.to_csv(
-    #     os.path.join(HOME_DIR, 'data/processed/debates.csv'),
-    #     index=True)
+    debates.to_csv(
+        os.path.join(HOME_DIR, 'data/processed/debates.csv'),
+        index=True)
 
     # Compute and serialize Spacy.
     output = {'docs': {}}
