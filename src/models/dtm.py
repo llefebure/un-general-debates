@@ -13,6 +13,8 @@ import pandas as pd
 from collections import defaultdict
 from gensim.corpora.dictionary import Dictionary
 from gensim.models.wrappers import DtmModel
+from gensim.matutils import corpus2csc
+from scipy.sparse import save_npz, load_npz
 from scipy.stats import linregress
 
 from src import HOME_DIR
@@ -26,7 +28,12 @@ class Dtm(DtmModel):
     def load(cls, fname):
         model_path = os.path.join(HOME_DIR, 'models', fname, 'dtm.gensim')
         obj = super().load(model_path)
-        obj.__class__ = Dtm # TODO: remove when retrained
+        obj.term_counts = load_npz(
+            os.path.join(HOME_DIR, 'models', fname, 'term_counts.npz')
+            ).todense()
+        obj.normalized_term_counts = \
+            (obj.term_counts + 1) / \
+                (obj.term_counts.sum(axis=0) + obj.term_counts.shape[0])
         obj._assign_corpus()
         return obj
 
@@ -36,6 +43,53 @@ class Dtm(DtmModel):
         assert self.original_corpus.debates.shape[0] == self.gamma_.shape[0]
         self.topic_assignments = self.get_topics_for_documents()
         self.time_slice_labels = self.original_corpus.debates.year.unique()
+
+    def show_topic(self, topic, time, topn=10, use_relevance_score=True,
+                   lambda_=.6, **kwargs):
+        """Normalized conditional probability of terms in topic.
+
+        This override `show_topic` to account for lambda normalizing as
+        described in "LDAvis: A method for visualizing and interpreting topics":
+        https://nlp.stanford.edu/events/illvi2014/papers/sievert-illvi2014.pdf
+
+        The score returned is computed as
+
+            lambda_ * log(phi_kw) + (1 - lambda_) * log(phi_kw / pw)
+
+        where
+
+            phi_kw : Conditional probability of term `w` in topic `k`.
+            pw : Marginal probability of term `w`.
+
+        Parameters
+        ----------
+        topic : int
+        time : int
+        topn : int
+        use_relevance_score : bool
+            If True, apply the lambda_ based relevance scoring. Else, fall back
+            to the default `show_topic` behavior.
+        lambda_ : float
+            The lambda constant to use in relevance scoring. Must be in the
+            range [0,1].
+
+        Returns
+        -------
+        list of (float, str)
+        """
+        if not use_relevance_score:
+            return super().show_topic(topic, time=time, topn=topn, **kwargs)
+        conditional = super().show_topic(topic, time, topn=None, **kwargs)
+        marginal = {
+            self.id2word[term_id]: marg[0]
+            for term_id, marg in enumerate(
+                self.normalized_term_counts[:, time].tolist())}
+        weighted = [
+            (lambda_ * np.log(cond) + \
+                (1 - lambda_) * np.log(cond / marginal[term]), term)
+            for cond, term in conditional
+        ]
+        return sorted(weighted, reverse=True)[:topn]
 
     def term_distribution(self, term, topic):
         """Extracts the probability over each time slice of a term/topic
@@ -105,7 +159,7 @@ class Dtm(DtmModel):
             ]
         return pd.DataFrame(data)
     
-    def top_lable_table(self, topic, slices, topn=10):
+    def top_label_table(self, topic, slices, topn=10):
         """Returns a dataframe with the top n labels in the topic for each of
         the given time slices."""
         data = {}
@@ -145,7 +199,14 @@ class Dtm(DtmModel):
 
     def label_topic(self, i, time_slice=None, n=10, condense=None):
         """Assign label to a given topic for a given time slice. If no time
-        slice specified, give a time agnostic label."""
+        slice specified, give a time agnostic label.
+
+        TODO: Improve the time labels to downweight common terms. Lots of
+        generic terms like "Country" and "People".
+
+        TODO: Improve the time agnostic label. Should account for ranking of
+        terms, and not just frequency in top 10 list.
+        """
         if time_slice is not None:
             result = self._label_topic(i, time_slice, n)
         else:
@@ -185,6 +246,15 @@ def train(args, output_dir):
     # Create the dictionary.
     dictionary = Dictionary(corpus.debates.bag_of_words)
     dictionary.filter_extremes(no_below=100)
+
+    # Save empirical term distribution within each time step.
+    term_counts = corpus2csc(
+        corpus.debates.groupby('year')
+        .agg({'bag_of_words': 'sum'})
+        .bag_of_words
+        .apply(dictionary.doc2bow))
+    save_npz(
+        os.path.join(output_dir, 'term_counts.npz'), term_counts)
 
     # Train and save dtm.
     time_slices = corpus.debates.groupby('year').size()
