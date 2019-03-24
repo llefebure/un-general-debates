@@ -94,7 +94,7 @@ Here are some examples of outputs from this method on the DTM. We see the top te
 
 ![Israel Palestine Topic Labels](reports/figures/IsraelPalestine.png)
 
-![Human Rights Topic Labels](reports/figures/humanrights.png)
+![Human Rights Topic Labels](reports/figures/HumanRightsIntlLaw.png)
 
 ### Semantic Hashing
 
