@@ -36,7 +36,7 @@ class Dtm(DtmModel):
             (obj.term_counts + 1) / \
                 (obj.term_counts.sum(axis=0) + obj.term_counts.shape[0])
         obj._assign_corpus()
-        self.topic_assignments = np.apply_along_axis(np.argmax, 1, self.gamma_)
+        obj.topic_assignments = np.apply_along_axis(np.argmax, 1, obj.gamma_)
         return obj
 
     def _assign_corpus(self):
@@ -199,8 +199,8 @@ class Dtm(DtmModel):
         Documents are "assigned" to a topic based on the most probable topic
         learned by the model. Entities are counted in these documents as well
         as the complement set of docs not assigned to this topic, and top
-        entities are sorted according to the differential between the number of
-        mentions per doc in the positive and complement set of docs.
+        entities are sorted according to the differential between the percentage
+        of mentions in docs in the positive and complement set of docs.
 
         Parameters
         ----------
@@ -228,9 +228,9 @@ class Dtm(DtmModel):
                 (self.original_corpus.debates.year == time_slice)
         indices = condition.nonzero()[0]
         negative_indices = negative_condition.nonzero()[0]
-        counts = document_entity_matrix[:,indices].sum(axis=1)
+        counts = (document_entity_matrix[:,indices] > 0).sum(axis=1)
         negative_counts = \
-            document_entity_matrix[:, negative_indices].sum(axis=1)
+            (document_entity_matrix[:, negative_indices] > 0).sum(axis=1)
         count_diff = counts / indices.shape[0] - \
             negative_counts / negative_indices.shape[0]
         topn = np.argsort(-count_diff.flatten()).tolist()[0][:n]
