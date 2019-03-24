@@ -64,7 +64,7 @@ Applying LDA with `gensim` and visualizing resulting topics with `pyLDAvis` reve
 
 A Dynamic Topic Model [1] is basically an extension of LDA to allow topic representations to evolve over fixed time intervals such as years. I wrote about applying this method [here](https://towardsdatascience.com/exploring-the-un-general-debates-with-dynamic-topic-models-72dc0e307696). As an example, the model learned a topic about "Human Rights", and for this topic, a plot of probabilities over time for selected terms is shown below. Note the rising use of "woman" and "gender", the decline of "man", and the inverse relationship between "mankind" and "humankind".
 
-![Human Rights Topic Probabilities](reports/figures/humanrights.png)
+![Human Rights Topic Probabilities](reports/figures/humanrightsplot.png)
 
 This code uses `gensim`'s wrapper to the original C++ implementation to train DTMs. See the [docs](https://radimrehurek.com/gensim/models/wrappers/dtmmodel.html) for instructions on setup. You will need to either download a precompiled binary or build one manually.
 
