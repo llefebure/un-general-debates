@@ -70,23 +70,31 @@ This code uses `gensim`'s wrapper to the original C++ implementation to train DT
 
 To train a DTM on this dataset, refer to [src/models/dtm.py](src/models/dtm.py). Note that the inference takes quite a while: almost 8 hours for me on a n1-standard-2 (2 vCPUs, 7.5 GB memory) instance on Google Cloud Platform. The script will save the model and a copy of the processed data into `models/`, and you can use the notebook [notebooks/DTM.ipynb](notebooks/DTM.ipynb) to explore the learned topics.
 
+##### Representing Topics
+
+Topics are typically represented by a list of the top N terms in the topic by conditional probability. However, studies have shown that introducing a measure of exclusivity in this ranking can aid in the interpretation [5][7]. Intuitively, we want terms that are not only prevalent in the given topic but also fairly exclusive to this topic- terms with a high delta between their conditional probability in the topic and marginal probability across the corpus. I implement the simple relevance weighting scheme described in [5].
+
 #### Topic Labelling
 
-The topic models above represent topics as distributions over words. Interpreting learned topics through lists of individual words has a high cognitive overhead, so several methods for labelling topics in a more human friendly way have been developed such as [2] and [3]. These methods leverage utilize chunking/noun phrases, frequency statistics, Wikipedia titles/concepts, and more to generate descriptive phrases to describe topics.
+The topic models above represent topics as ranked lists of terms. Interpreting learned topics through lists of individual words has a high cognitive overhead even when using the term reranking scheme mentioned above, so several methods for labelling topics in a more human friendly way have been developed such as [2] and [3]. These methods utilize chunking/noun phrases, frequency statistics, Wikipedia titles/concepts, and more to generate descriptive phrases to describe topics.
 
 Taking inspiration from [2] especially, I develop a method for labelling topics leveraging pretrained word and entity (Wikipedia title) embeddings from Wikipedia2vec [4]. Specifically, my method consists of the following steps to label a given topic:
 
-1) For each document assigned to the topic, extract all noun chunks and match each to a corresponding Wikipedia entity (if one exists). Take the top N entities by frequency as label candidates for the next step.
+1) For each document assigned to the topic (according to the document's highest topic probability), extract all noun chunks and match each to a corresponding Wikipedia entity (if one exists). Take the top N entities (based on the differential between frequency within and outside of the topic) as label candidates for the next step.
 
-2) For each label candidate from 1), compute the mean similarity between its embedding and that of each word in the term list that represents the topic (top M terms by marginal probability). Rank the label candidates by this score.
+2) For each label candidate from 1), compute the mean similarity between its embedding and that of each word in the term list that represents the topic (top M terms by probability or relevance score). Rank the label candidates by this score.
 
 3) Represent the topic with the top M label candidates as ranked in 2).
 
-Examples of some outputs from this method. We see the top terms from time slices of the Dynamic Topic Model, the top labels ranked according to the method above, and a label for the topic across all time slices obtained by using the method above on each time slice and aggregating the result.
+In the Dynamic Topic Model case, I generalize the top term list in step 2) to just be an aggregation of the top term lists across all time slices.
+
+Here are some examples of outputs from this method on the DTM. We see the top terms from time slices of the Dynamic Topic Model, the top labels assigned to these time slices, and a label for the topic across all time slices.
 
 ![Nuclear Weapons Topic Labels](reports/figures/NuclearWeapons.png)
 
 ![Israel Palestine Topic Labels](reports/figures/IsraelPalestine.png)
+
+![Human Rights Topic Labels](reports/figures/HumanRights.png)
 
 ### Semantic Hashing
 
@@ -105,3 +113,5 @@ In [6], the authors present an interesting method for hashing documents using a 
 [5] [LDAvis: A method for visualizing and interpreting topics](https://nlp.stanford.edu/events/illvi2014/papers/sievert-illvi2014.pdf)
 
 [6] [Variational Deep Semantic Hashing for Text Documents](https://arxiv.org/pdf/1708.03436.pdf)
+
+[7] [Summarizing topical content with word frequency and exclusivity](https://icml.cc/2012/papers/113.pdf)

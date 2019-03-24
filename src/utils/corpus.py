@@ -5,11 +5,14 @@ import msgpack
 import os
 import pandas as pd
 from functools import lru_cache
+from gensim.corpora import Dictionary
+from gensim.matutils import corpus2csc
 from spacy.tokens import Doc
 from tqdm import tqdm
 
 from src import HOME_DIR
 from src.utils.spacy import nlp, apply_extensions
+from src.utils.wiki2vec import lookup_entity
 
 logger = logging.getLogger(__name__)
 cache = lru_cache(maxsize=None)
@@ -158,6 +161,20 @@ class Corpus:
         """
         self.debates = pd.concat([self.debates, column], axis=1)
         self.debates.to_csv(self.filename, index=False)
+
+    @cache
+    def corpus_entity_matrix(self):
+        paragraph_entities = []
+        for paragraph in tqdm(self.paragraphs):
+            paragraph_entity = []
+            for nc in paragraph.spacy_doc().noun_chunks:
+                entity = lookup_entity(nc)
+                if entity:
+                    paragraph_entity.append(entity.title)
+            paragraph_entities.append(paragraph_entity)
+        dictionary = Dictionary(paragraph_entities)
+        paragraph_entities = [dictionary.doc2bow(p) for p in paragraph_entities]
+        return corpus2csc(paragraph_entities), dictionary
 
     def load_spacy_cache(self):
         """Convenience function for doing all of the spacy loading upfront."""

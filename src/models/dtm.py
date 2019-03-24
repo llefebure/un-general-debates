@@ -14,12 +14,13 @@ from collections import defaultdict
 from gensim.corpora.dictionary import Dictionary
 from gensim.models.wrappers import DtmModel
 from gensim.matutils import corpus2csc
+from scipy.spatial.distance import cosine
 from scipy.sparse import save_npz, load_npz
 from scipy.stats import linregress
 
 from src import HOME_DIR
 from src.utils.corpus import Corpus
-from src.utils.wiki2vec import label_topic
+from src.utils.wiki2vec import wiki2vec
 
 
 class Dtm(DtmModel):
@@ -35,18 +36,18 @@ class Dtm(DtmModel):
             (obj.term_counts + 1) / \
                 (obj.term_counts.sum(axis=0) + obj.term_counts.shape[0])
         obj._assign_corpus()
+        self.topic_assignments = np.apply_along_axis(np.argmax, 1, self.gamma_)
         return obj
 
     def _assign_corpus(self):
         """Assign corpus object to the model"""
         self.original_corpus = Corpus()
         assert self.original_corpus.debates.shape[0] == self.gamma_.shape[0]
-        self.topic_assignments = self.get_topics_for_documents()
         self.time_slice_labels = self.original_corpus.debates.year.unique()
 
     def show_topic(self, topic, time, topn=10, use_relevance_score=True,
                    lambda_=.6, **kwargs):
-        """Normalized conditional probability of terms in topic.
+        """Show top terms from topic
 
         This override `show_topic` to account for lambda normalizing as
         described in "LDAvis: A method for visualizing and interpreting topics":
@@ -65,6 +66,7 @@ class Dtm(DtmModel):
         ----------
         topic : int
         time : int
+            Time slice specified as index, e.g. 0, 1, ...
         topn : int
         use_relevance_score : bool
             If True, apply the lambda_ based relevance scoring. Else, fall back
@@ -191,52 +193,104 @@ class Dtm(DtmModel):
         for row in slopes[:n]:
             print(row)
 
-    def _label_topic(self, i, time_slice, n):
-        time = np.where(self.time_slice_labels == time_slice)[0][0]
-        top_terms = [term for _, term in self.show_topic(i, time, n)]
-        spacy_docs = self.get_spacy_docs_for_topic(i, time)
-        return label_topic(spacy_docs, top_terms)
+    def top_entities(self, i, time_slice=None, n=10):
+        """Gets the top entities among documents for the given topic
+
+        Documents are "assigned" to a topic based on the most probable topic
+        learned by the model. Entities are counted in these documents as well
+        as the complement set of docs not assigned to this topic, and top
+        entities are sorted according to the differential between the number of
+        mentions per doc in the positive and complement set of docs.
+
+        Parameters
+        ----------
+        i : int
+            Topic index
+        time_slice : int, optional
+            Time slice specified as absolute year.
+        n : int
+            Number of top entities to return
+
+        Returns
+        -------
+        list of tuples
+            Tuples of the form:
+                (entity, positive count, negative count, count differential)
+        """
+        document_entity_matrix, entity_dictionary = \
+            self.original_corpus.corpus_entity_matrix()
+        condition = (self.topic_assignments == i)
+        negative_condition = (self.topic_assignments != i)
+        if time_slice is not None:
+            condition = condition & \
+                (self.original_corpus.debates.year == time_slice)
+            negative_condition = negative_condition & \
+                (self.original_corpus.debates.year == time_slice)
+        indices = condition.nonzero()[0]
+        negative_indices = negative_condition.nonzero()[0]
+        counts = document_entity_matrix[:,indices].sum(axis=1)
+        negative_counts = \
+            document_entity_matrix[:, negative_indices].sum(axis=1)
+        count_diff = counts / indices.shape[0] - \
+            negative_counts / negative_indices.shape[0]
+        topn = np.argsort(-count_diff.flatten()).tolist()[0][:n]
+        return [(entity_dictionary[i], counts[i, 0], negative_counts[i, 0],
+                count_diff[i, 0]) for i in topn]
 
     def label_topic(self, i, time_slice=None, n=10, condense=None):
-        """Assign label to a given topic for a given time slice. If no time
-        slice specified, give a time agnostic label.
+        """Assign label to a topic
 
-        TODO: Improve the time labels to downweight common terms. Lots of
-        generic terms like "Country" and "People".
+        Parameters
+        ----------
+        i : int
+            Topic index
+        time_slice: int, optional
+            Absolute time slice. If not specified, return a time agnostic label
+            for the topic.
+        n : int
+        condense : int, optional
+            Return a condense string version of the name with this many
+            entities in it.
 
-        TODO: Improve the time agnostic label. Should account for ranking of
-        terms, and not just frequency in top 10 list.
+        Returns
+        -------
+        list or str
         """
+        top_entities = self.top_entities(i, time_slice, n)
         if time_slice is not None:
-            result = self._label_topic(i, time_slice, n)
+            top_terms = self.show_topic(
+                i, np.where(self.time_slice_labels == time_slice)[0][0], n)
         else:
-            label_to_detail = defaultdict(list)
-            for ts in self.time_slice_labels:
-                labels_for_ts = self._label_topic(i, ts, n)
-                for label in labels_for_ts:
-                    label_to_detail[label[0]].append(label)
-            for k in label_to_detail:
-                label_to_detail[k] = (k, len(label_to_detail[k]))
-            result = sorted(label_to_detail.values(), key=lambda x: -x[1])[:n]
-        if condense is not None:
-            return '; '.join(x[0] for x in result[:condense])
-        return result
+            # In the case where no time slice is specified, aggregate scores
+            # across the top n in each time slice to come up with a top term
+            # list across all time slices. This could probably be improved.
+            scores = defaultdict(float)
+            for t in range(len(self.time_slices)):
+                top_terms = self.show_topic(i, t, n)
+                # Need to adjust scores up based on the min score, so that
+                # terms aren't rewarded for not being in the top n list.
+                min_score = min(s for s, _ in top_terms)
+                for score, term in top_terms:
+                    scores[term] += (score - min_score)
+            top_terms = [
+                (score, term) for term, score in sorted(
+                    scores.items(), key=lambda x: -x[1])[:n]]
 
-    def get_topics_for_documents(self):
-        """Assign each document to its most probable topic"""
-        p = np.exp(self.gamma_) /\
-            np.exp(self.gamma_).sum(axis=1).reshape((-1,1))
-        return np.apply_along_axis(np.argmax, 1, p)
-    
-    def get_spacy_docs_for_topic(self, i, time_slice):
-        """Get spacy docs for documents matching a given topic in a given time
-        slice"""
-        indices = self.original_corpus.debates[
-            ((self.original_corpus.debates.year -
-              self.original_corpus.debates.year.min()) == time_slice) &
-            (self.topic_assignments == i)].index
-        return [self.original_corpus.paragraphs[j].spacy_doc() \
-                for j in indices]
+        final_candidates = []
+        for candidate in top_entities:
+            scores = np.array([
+                1 - cosine(
+                    wiki2vec.get_entity_vector(candidate[0]),
+                    wiki2vec.get_word_vector(term))
+                for _, term in top_terms if wiki2vec.get_word(term)
+            ])
+            final_candidates.append((candidate[0], scores.mean()))
+        final_candidates = sorted(final_candidates, key=lambda x: -x[1])
+        if condense:
+            return '; '.join(
+                [title for title, _ in final_candidates[:condense]])
+        else:
+            return final_candidates
 
 def train(args, output_dir):
     """Build the corpus, trains the DTM, and saves the model to the output
